@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const bcrypt = require('bcryptjs');
+const jwt_1 = require("../helpers/jwt");
 const Usuario = require("../models/User");
 const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const body = req.body;
@@ -25,15 +26,18 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const salt = bcrypt.genSaltSync(10);
         usuario.password = bcrypt.hashSync(body.password, salt);
         yield usuario.save();
+        const token = yield (0, jwt_1.generarJWT)(usuario._id, usuario.name);
         res.status(201).json({
             ok: true,
             body,
+            token
         });
     }
     catch (error) {
+        console.log(error);
         res.status(500).json({
             ok: false,
-            msg: 'Error en el servidor!'
+            msg: `error en el servidor ${error}`
         });
     }
 });
@@ -54,30 +58,50 @@ const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 msg: 'Usuario o contraseña incorrecto'
             });
         }
-        //TODO: JWT
-        res.status(200).json({
+        const token = yield (0, jwt_1.generarJWT)(usuario._id, usuario.name);
+        return res.status(200).json({
             ok: true,
-            uid: usuario.uid,
+            uid: usuario._id,
             email: usuario.email,
-            name: usuario.name
+            name: usuario.name,
+            token
         });
     }
     catch (error) {
         console.log(error);
-        res.status(500).json({
+        return res.status(500).json({
             ok: false,
             msg: 'Error en el servidor!'
         });
     }
 });
-const refreshToken = (req, res) => {
-    res.json({
-        ok: true,
-    });
-};
+const refreshToken = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const _id = req._id;
+        const name = req.name;
+        if (!_id || !name) {
+            return res.json({
+                ok: false,
+                msg: 'No hay informacion para generar el token'
+            });
+        }
+        const token = yield (0, jwt_1.generarJWT)(_id, name);
+        res.json({
+            ok: true,
+            token
+        });
+    }
+    catch (error) {
+        console.log(error);
+        return res.json({
+            ok: false,
+            msg: 'No hay informacion para generar el token'
+        });
+    }
+});
 module.exports = {
     registerUser,
     loginUser,
-    refreshToken,
+    refreshToken
 };
 //# sourceMappingURL=auth.js.map

@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 const bcrypt = require('bcryptjs');
 import { ILoginUser, IRegisterUser } from "../interfaces/IAuth";
-import { Model } from "mongoose";
+import { generarJWT } from "../helpers/jwt";
+import { CustomRequest } from "../interfaces/IExtends";
 const Usuario = require("../models/User");
 
 const registerUser = async (req: Request, res: Response) => {
@@ -24,15 +25,19 @@ const registerUser = async (req: Request, res: Response) => {
 
     await usuario.save();
 
+    const token = await generarJWT(usuario._id,usuario.name);
+
     res.status(201).json({
       ok: true,
       body,
+      token
     });
 
   } catch (error) {
+    console.log(error)
     res.status(500).json({
       ok: false,
-      msg:'Error en el servidor!'
+      msg:`error en el servidor ${error}`
     });
   }
 };
@@ -60,32 +65,56 @@ const loginUser = async(req: Request, res: Response) => {
       })
   }
 
-  //TODO: JWT
-
-  res.status(200).json({
+  const token = await generarJWT(usuario._id,usuario.name);
+  return res.status(200).json({
     ok:true,
-    uid:usuario.uid,
+    uid:usuario._id,
     email:usuario.email,
-    name:usuario.name
+    name:usuario.name,
+    token
   })
     
   } catch (error) {
     console.log(error)
-    res.status(500).json({
+    return res.status(500).json({
       ok: false,
       msg:'Error en el servidor!'
     });
   }
 
 };
-const refreshToken = (req: Request, res: Response) => {
-  res.json({
-    ok: true,
-  });
-};
+const refreshToken = async(req: CustomRequest, res: Response) => {
+
+  try {
+    const _id = req._id;
+    const name = req.name;
+    
+    if(!_id || !name){
+      return res.json({
+        ok:false,
+        msg:'No hay informacion para generar el token'
+      })
+    }
+
+    const token = await generarJWT(_id,name);
+  
+    res.json({
+      ok: true,
+      token
+    });
+  }
+  catch (error) {
+    console.log(error)
+    return res.json({
+      ok:false,
+      msg:'No hay informacion para generar el token'
+    })
+  }
+}
+
 
 module.exports = {
   registerUser,
   loginUser,
-  refreshToken,
+  refreshToken
 };
