@@ -6,36 +6,40 @@ import { CustomRequest } from "../interfaces/IExtends";
 const Usuario = require("../models/User");
 
 const registerUser = async (req: Request, res: Response) => {
-  const body: IRegisterUser = req.body;
+  const {email,name,password}: IRegisterUser = req.body;
 
   try {
 
-    let usuario = await Usuario.findOne({email:body.email});
+    let usuario = await Usuario.findOne({email:email});
 
     if(usuario){
-        res.status(401).json({
+        return res.status(401).json({
             ok:false,
             msg:'Ya existe un usuario con el correo ingresado'
         })
     }
-    usuario = new Usuario(body);
+    usuario = new Usuario({email,name,password});
 
     const salt = bcrypt.genSaltSync(10);
-    usuario.password = bcrypt.hashSync(body.password,salt);
+    usuario.password = bcrypt.hashSync(password,salt);
 
-    await usuario.save();
+    const user = await usuario.save();
 
-    const token = await generarJWT(usuario._id,usuario.name);
+    const token = await generarJWT(usuario._id,usuario.name, usuario.email);
 
     res.status(201).json({
       ok: true,
-      body,
+      user:{
+        "_id":user._id,
+        "name":name,
+        "email":email
+      },
       token
     });
 
   } catch (error) {
     console.log(error)
-    res.status(500).json({
+    return res.status(500).json({
       ok: false,
       msg:`error en el servidor ${error}`
     });
@@ -65,7 +69,7 @@ const loginUser = async(req: Request, res: Response) => {
       })
   }
 
-  const token = await generarJWT(usuario._id,usuario.name);
+  const token = await generarJWT(usuario._id,usuario.name, usuario.email);
   return res.status(200).json({
     ok:true,
     uid:usuario._id,
@@ -88,18 +92,22 @@ const refreshToken = async(req: CustomRequest, res: Response) => {
   try {
     const _id = req._id;
     const name = req.name;
+    const email = req.email;
     
-    if(!_id || !name){
+    if(!_id || !name || !email){
       return res.json({
         ok:false,
         msg:'No hay informacion para generar el token'
       })
     }
 
-    const token = await generarJWT(_id,name);
+    const token = await generarJWT(_id.toString(),name, email);
   
     res.json({
       ok: true,
+      uid:_id,
+      name,
+      email,
       token
     });
   }

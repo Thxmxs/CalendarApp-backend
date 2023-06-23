@@ -1,5 +1,6 @@
 
 export interface IRegisterUser{
+    "_id"?:string;
     "name":string;
     "email":string;
     "password":string;
@@ -15,4 +16,5 @@ export interface ILoginUser{
 export interface IPayloadJWT{
     "_id":string
     "name":string
+    "email":string
 }

@@ -13,29 +13,33 @@ const bcrypt = require('bcryptjs');
 const jwt_1 = require("../helpers/jwt");
 const Usuario = require("../models/User");
 const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const body = req.body;
+    const { email, name, password } = req.body;
     try {
-        let usuario = yield Usuario.findOne({ email: body.email });
+        let usuario = yield Usuario.findOne({ email: email });
         if (usuario) {
-            res.status(401).json({
+            return res.status(401).json({
                 ok: false,
                 msg: 'Ya existe un usuario con el correo ingresado'
             });
         }
-        usuario = new Usuario(body);
+        usuario = new Usuario({ email, name, password });
         const salt = bcrypt.genSaltSync(10);
-        usuario.password = bcrypt.hashSync(body.password, salt);
-        yield usuario.save();
-        const token = yield (0, jwt_1.generarJWT)(usuario._id, usuario.name);
+        usuario.password = bcrypt.hashSync(password, salt);
+        const user = yield usuario.save();
+        const token = yield (0, jwt_1.generarJWT)(usuario._id, usuario.name, usuario.email);
         res.status(201).json({
             ok: true,
-            body,
+            user: {
+                "_id": user._id,
+                "name": name,
+                "email": email
+            },
             token
         });
     }
     catch (error) {
         console.log(error);
-        res.status(500).json({
+        return res.status(500).json({
             ok: false,
             msg: `error en el servidor ${error}`
         });
@@ -58,7 +62,7 @@ const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 msg: 'Usuario o contraseña incorrecto'
             });
         }
-        const token = yield (0, jwt_1.generarJWT)(usuario._id, usuario.name);
+        const token = yield (0, jwt_1.generarJWT)(usuario._id, usuario.name, usuario.email);
         return res.status(200).json({
             ok: true,
             uid: usuario._id,
@@ -79,15 +83,19 @@ const refreshToken = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     try {
         const _id = req._id;
         const name = req.name;
-        if (!_id || !name) {
+        const email = req.email;
+        if (!_id || !name || !email) {
             return res.json({
                 ok: false,
                 msg: 'No hay informacion para generar el token'
             });
         }
-        const token = yield (0, jwt_1.generarJWT)(_id, name);
+        const token = yield (0, jwt_1.generarJWT)(_id.toString(), name, email);
         res.json({
             ok: true,
+            uid: _id,
+            name,
+            email,
             token
         });
     }

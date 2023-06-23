@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validarJWT = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+var mongoose = require('mongoose');
 const validarJWT = (req, res, next) => {
     const token = req.header('x-token');
     if (!token) {
@@ -17,6 +18,7 @@ const validarJWT = (req, res, next) => {
         const payload = jsonwebtoken_1.default.verify(token, process.env.SECRET_JWT_SEED || '');
         req._id = payload._id;
         req.name = payload.name;
+        req.email = payload.email;
     }
     catch (error) {
         console.log(error);

@@ -14,4 +14,4 @@ import { IEvent } from '../interfaces/IEvent';
     }
   });
 
- module.exports = model<IEvent>('Event', EventSchema);
+export const Event = model<IEvent>('Event', EventSchema);

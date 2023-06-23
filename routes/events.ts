@@ -7,7 +7,7 @@ const {fieldValidators} = require('../middlewares/fieldValidators');
 const router = express.Router();
 
 router.get('/',[
-
+    validarJWT
 ], getAllEvents);
 
 router.post('/',[
@@ -18,7 +18,13 @@ router.post('/',[
     fieldValidators
 ], createEvent);
 
-router.put('/:id',validarJWT, updateEvent);
+router.put('/:id',[
+    validarJWT,
+    check('title','El titulo es obligatorio').not().isEmpty(),
+    check('start','La fecha de inicio es obligatoria').not().isEmpty(),
+    check('end','La fecha de finalizacion es obligatoria').not().isEmpty(),
+    fieldValidators
+], updateEvent);
 
 router.delete('/:id',validarJWT, deleteEvent);
 
